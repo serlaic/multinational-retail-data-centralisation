@@ -1,16 +1,17 @@
-class DatabaseConnector:
+class DatabaseConnector():
 
-    def __init__(self):
-        pass  
-
-    def red_db_creds(self):
+    def __init__(self,db_creds):
+        
+        self.db_creds = db_creds
+        
+    def read_db_creds(self):
         '''
         This function reads the credentials from yaml file and returns the dictionary of credentials
 
         '''
         import yaml
 
-        with open('db_creds.yaml', 'r') as stream:
+        with open(self.db_creds, 'r') as stream:
             yaml_data = yaml.safe_load(stream)    
         return yaml_data
 
@@ -21,7 +22,7 @@ class DatabaseConnector:
         '''
         from sqlalchemy import create_engine
 
-        yaml_data = self.red_db_creds()
+        yaml_data = self.read_db_creds()
         engine = create_engine(f"{yaml_data['DATABASE_TYPE']}://{yaml_data['RDS_USER']}:{yaml_data['RDS_PASSWORD']}@{yaml_data['RDS_HOST']}:{yaml_data['RDS_PORT']}/{yaml_data['RDS_DATABASE']}")
         engine.connect()
         return engine
@@ -36,3 +37,16 @@ class DatabaseConnector:
         inspector = inspect(self.init_db_engine())
         tablet_list = inspector.get_table_names()
         return tablet_list
+
+    def upload_to_db(self, table_name, pandas_dataframe):
+        '''
+        This method will upload the dataframe to the database.
+        Will take pandas dataframe and table name as an argument
+        '''
+        pandas_dataframe.to_sql(table_name, self.init_db_engine(), if_exists = 'replace')
+
+from data_cleaning import DataCleaning
+
+pandas_dataframe = DataCleaning()
+upload_to_db = DatabaseConnector('sales_db_creds.yaml')
+upload_to_db.upload_to_db('dim_users', pandas_dataframe.clean_user_data())
