@@ -15,7 +15,8 @@ class DataExtractor(object):
         This function will take a pdf file and return pandas dataframe
         '''
         import tabula
-        return tabula.read_pdf('https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf', pages='all', multiple_tables = False)
+        pdf_table_df = tabula.read_pdf('https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf', pages='all', multiple_tables = False)
+        return pdf_table_df[0]
 
 
 

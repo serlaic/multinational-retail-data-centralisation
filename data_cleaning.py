@@ -14,7 +14,8 @@ class DataCleaning(object):
         import numpy as np
 
         users_table = DataExtractor().read_rds_table('legacy_users', DatabaseConnector('db_creds.yaml'))
-       
+
+        # Some useful functions to check overall information on the dataframe
         # users_table.dtypes
         # users_table.info()
         # users_table.head()
@@ -33,10 +34,10 @@ class DataCleaning(object):
         users_table = users_table[users_table['first_name_issues'].isin([True])]
         users_table['date_of_birth'] = pd.to_datetime(users_table['date_of_birth'], errors= 'coerce')
         users_table['join_date'] = pd.to_datetime(users_table['join_date'], errors= 'coerce')
-        users_table_upd = users_table.dropna()
-   #    users_table_upd = users_table_upd.drop(columns= ['first_name_issues', 'index'])
+        users_table = users_table.dropna()
+        users_table_upd = users_table_upd.drop(columns= ['first_name_issues', 'index'])
 
-        return users_table_upd.drop(columns= ['first_name_issues', 'index'])
+        return users_table_upd
 
     @classmethod
     def clean_card_details(cls):
@@ -48,15 +49,20 @@ class DataCleaning(object):
         from data_extraction import DataExtractor
         import pandas as pd
 
-        pdf_table = DataExtractor.retrieve_pdf_data()
-        pdf_table_df = pdf_table[0]
+        users_table_pdf = DataExtractor.retrieve_pdf_data()
 
         # Some useful functions to check overall information on the dataframe
         # print(pdf_table_df.dtypes)
-        # print(pdf_table_df.info())
+        # print(users_table_pdf.info())
         # print(pdf_table_df.head())
 
-        pdf_table_df['expiry_date'] = pd.to_datetime(pdf_table_df['expirty_date'], erros= 'coerce')
+        users_table_pdf['date_payment_confirmed'] = pd.to_datetime(users_table_pdf['date_payment_confirmed'], errors= 'coerce')
+        users_table_pdf = users_table_pdf.dropna()
+        
+
+        return users_table_pdf
+        
+
 
 
 
