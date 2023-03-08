@@ -1,8 +1,0 @@
-
-DATABASE_TYPE: 'postgresql'
-RDS_HOST: localhost
-RDS_PASSWORD: dekstar1986
-RDS_USER: postgres
-RDS_DATABASE: Sales_Data
-RDS_PORT: 5432
-DBAPI: 'psycopg2'
