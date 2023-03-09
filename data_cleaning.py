@@ -36,7 +36,7 @@ class DataCleaning(object):
         users_table['date_of_birth'] = pd.to_datetime(users_table['date_of_birth'], errors= 'coerce')
         users_table['join_date'] = pd.to_datetime(users_table['join_date'], errors= 'coerce')
         users_table = users_table.dropna()
-        users_table_upd = users_table_upd.drop(columns= ['first_name_issues', 'index'])
+        users_table_upd = users_table.drop(columns= ['first_name_issues', 'index'])
 
         return users_table_upd
 
@@ -87,6 +87,7 @@ class DataCleaning(object):
 
         s3_server = "s3://data-handling-public/products.csv"
         stores_df = DataExtractor.extract_from_s3(s3_server)
+
     # function to be used to remove 'kg','g','ml','.' strings from dataframe
     # and convert g and ml into kg where g = ml and kg = g/1000 kg = ml/1000
         def check_weight(x):
@@ -125,6 +126,7 @@ class DataCleaning(object):
         import pandas as pd
 
         stores_df = DataCleaning.convert_product_weights()
+
         # function to convert date from a specific format
         def check_time(x):
             from datetime import datetime
@@ -149,4 +151,20 @@ class DataCleaning(object):
 
         return stores_df
 
+    @classmethod
+    def clean_order_details(cls):
+        '''
+        This method uploads the dataframe from read_rds_table
+        method from DataExtractor class in data_extraction.py file
+        and clears all data. Removes first_name,last_name,and 1 columns
+        This table is acting as the source of truth for sales.
+        '''
+        
+        from database_utils import DatabaseConnector
+        from data_extraction import DataExtractor
+
+        orders_table = DataExtractor().read_rds_table('orders_table', DatabaseConnector('db_creds.yaml'))
+        orders_table = orders_table.drop(columns = ['first_name', '1', 'last_name', 'level_0'])
+
+        return orders_table
 
