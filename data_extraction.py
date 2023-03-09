@@ -26,12 +26,10 @@ class DataExtractor(object):
         dictionary as an argument
         '''
         import requests
-        import json
-        params = {"format": "json"}
         api_key = {'x-api-key': 'yFBQbwXe9J3sd6zWVAMrK6lcxxr0q1lr2PT6DDMX'}
-        response = requests.get('https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/number_stores',params=params, headers= api_key)
-        number_stores = response.json()
-        return number_stores['number_stores']
+        response = requests.get('https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/number_stores', headers= api_key)
+        store_number = response.json()
+        return store_number['number_stores']
 
     @classmethod
     def retrieve_stores_data(cls):
@@ -39,7 +37,24 @@ class DataExtractor(object):
         This method return take and retrieve store endpoint as 
         an egument and extracts all the stores from the API.
         '''
-DataExtractor.list_number_of_stores()
+        import requests
+        import pandas as pd
+        api_key = {'x-api-key': 'yFBQbwXe9J3sd6zWVAMrK6lcxxr0q1lr2PT6DDMX'}
+        store_data_df = pd.DataFrame()
+        # for loop to go through all the pages and add them into the store_data_df dataframe
+        for store_number in range(0,DataExtractor().list_number_of_stores()):
+            # requests information
+            response = requests.get(f"https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/store_details/{store_number}", headers= api_key)
+            # converts response into dictionary
+            store_data_json = response.json()
+            # converts dictionary into dataframe
+            store_data_df_single = pd.DataFrame.from_dict([store_data_json])
+            # adds single dataframe into new dataframe after each iterration which will form a return of the method
+            store_data_df = pd.concat([store_data_df, store_data_df_single],ignore_index= True)
+        
+        return store_data_df
+
+DataExtractor.retrieve_stores_data()
         
 
         
