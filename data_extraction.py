@@ -27,8 +27,11 @@ class DataExtractor(object):
         '''
         import requests
         api_key = {'x-api-key': 'yFBQbwXe9J3sd6zWVAMrK6lcxxr0q1lr2PT6DDMX'}
+        # requests information
         response = requests.get('https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/number_stores', headers= api_key)
+        # converts response into dictionary
         store_number = response.json()
+        # returns the number of stores
         return store_number['number_stores']
 
     @classmethod
@@ -49,12 +52,11 @@ class DataExtractor(object):
             store_data_json = response.json()
             # converts dictionary into dataframe
             store_data_df_single = pd.DataFrame.from_dict([store_data_json])
-            # adds single dataframe into new dataframe after each iterration which will form a return of the method
+            # adds single dataframe into final dataframe after each iterration
             store_data_df = pd.concat([store_data_df, store_data_df_single],ignore_index= True)
-        
+        # returns final dataframe with all the data
         return store_data_df
 
-DataExtractor.retrieve_stores_data()
         
 
         
