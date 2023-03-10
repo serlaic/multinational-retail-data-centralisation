@@ -85,11 +85,10 @@ class DataCleaning(object):
         '''
         from data_extraction import DataExtractor
 
-        s3_server = "s3://data-handling-public/products.csv"
-        stores_df = DataExtractor.extract_from_s3(s3_server)
+        stores_df = DataExtractor.extract_from_s3()
 
-    # function to be used to remove 'kg','g','ml','.' strings from dataframe
-    # and convert g and ml into kg where g = ml and kg = g/1000 kg = ml/1000
+        # function to be used to remove 'kg','g','ml','.' strings from dataframe
+        # and convert g and ml into kg where g = ml and kg = g/1000 kg = ml/1000
         def check_weight(x):
             if 'kg' in x:
                 x = x.replace('kg', '')
@@ -123,6 +122,10 @@ class DataCleaning(object):
     
     @classmethod
     def clean_products_data(cls):
+        '''
+        This method cleans 'date_added' column and replaces all date related
+        content. Returns clean dataframe with date_added column as type(datetime)
+        '''
         import pandas as pd
 
         stores_df = DataCleaning.convert_product_weights()
@@ -156,7 +159,7 @@ class DataCleaning(object):
         '''
         This method uploads the dataframe from read_rds_table
         method from DataExtractor class in data_extraction.py file
-        and clears all data. Removes first_name,last_name,and 1 columns
+        and clears all data. Removes first_name,last_name, level_0, and 1 columns
         This table is acting as the source of truth for sales.
         '''
         
@@ -167,4 +170,33 @@ class DataCleaning(object):
         orders_table = orders_table.drop(columns = ['first_name', '1', 'last_name', 'level_0'])
 
         return orders_table
+    
+    @classmethod
+    def date_time_details(cls):
+        '''
+        This method uploads the dataframe from extract_json_from_s3 method 
+        in DataExtractor class. Removes all corrupted data and returns clean
+        dataframe
+        '''
+        from data_extraction import DataExtractor
+        from datetime import datetime
+        import numpy as np
+        import pandas as pd
+
+        date_time_df = DataExtractor.extract_json_from_s3()
+
+        def check_time(x):
+            try:
+                x = datetime.strptime(x, '%H:%M:%S').time()
+            except:
+                x = np.NaN
+            return x
+        
+        date_time_df['timestamp'] = date_time_df['timestamp'].apply(check_time)
+        date_time_df['timestamp'] = pd.to_datetime(date_time_df['timestamp'], format = '%H:%M:%S', errors ='coerce').dt.time
+        date_time_df = date_time_df.dropna()  
+        
+        return date_time_df
+
+
 
