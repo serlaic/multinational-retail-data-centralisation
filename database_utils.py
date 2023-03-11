@@ -25,7 +25,7 @@ class DatabaseConnector():
 
         yaml_data = self.read_db_creds()
         engine = create_engine(f"{yaml_data['DATABASE_TYPE']}://{yaml_data['RDS_USER']}:{yaml_data['RDS_PASSWORD']}@{yaml_data['RDS_HOST']}:{yaml_data['RDS_PORT']}/{yaml_data['RDS_DATABASE']}")
-        engine.connect()
+     #   engine.connect()
         return engine
 
     def list_db_tables(self):
@@ -46,7 +46,19 @@ class DatabaseConnector():
         '''
         pandas_dataframe.to_sql(table_name, self.init_db_engine(), if_exists = 'replace')
 
-from data_cleaning import DataCleaning
+def load_all_db():
+    '''
+    This function loads dataframes into databases
+    '''
+    from data_cleaning import DataCleaning
 
-upload_to_db = DatabaseConnector('sales_db_creds.yaml')
-upload_to_db.upload_to_db('dim_users' , DataCleaning().clean_user_data())
+    upload_to_db = DatabaseConnector('sales_db_creds.yaml')
+    upload_to_db.upload_to_db('dim_users' , DataCleaning.clean_user_data())
+    upload_to_db.upload_to_db('dim_card_details', DataCleaning.clean_card_details())
+    upload_to_db.upload_to_db('dim_store_details', DataCleaning.called_clean_stored_data())
+    upload_to_db.upload_to_db('dim_products', DataCleaning.clean_products_data())
+    upload_to_db.upload_to_db('orders_table', DataCleaning.clean_order_details())
+    upload_to_db.upload_to_db('dim_date_times', DataCleaning.clean_date_time_details())
+
+
+load_all_db()
