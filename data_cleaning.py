@@ -68,9 +68,15 @@ class DataCleaning(object):
         from data_extraction import DataExtractor
         import pandas as pd
 
+        def clean_numbers_from_string(x):
+            x = ''.join(i for i in x if i.isdigit())
+            return x
+
+
         stores_table_api = DataExtractor.retrieve_stores_data()
         stores_table_api['opening_date'] = pd.to_datetime(stores_table_api['opening_date'], errors = 'coerce')
         stores_table_api['latitude'] = stores_table_api['latitude'].fillna("N/A")
+        stores_table_api['staff_numbers'] = stores_table_api['staff_numbers'].apply(clean_numbers_from_string)
         stores_table_api = stores_table_api.drop("lat", axis= 1) # same as .drop(columns= "lat")
         stores_table_api = stores_table_api.dropna()
         
@@ -90,24 +96,29 @@ class DataCleaning(object):
         # function to be used to remove 'kg','g','ml','.' strings from dataframe
         # and convert g and ml into kg where g = ml and kg = g/1000 kg = ml/1000
         def check_weight(x):
+            # converts grams into kgs
             if 'kg' in x:
                 x = x.replace('kg', '')
+            # converts grams into kgs
             elif 'g' in x:
                 x = x.replace('g', '')
                 x = x.replace('.', '')
                 try:
                     x = float(x)
-                    x = x / 1000
+                    x = x / 1000 
                 except:
+                    # there are some columns with quanity x weight(grams) values
+                    # this code below will split the values and multimply them
                     x = x.split('x')
                     x_0 = float(x[0])
                     x_1 = float(x[1])
                     x = x_0 * x_1
+            # converts ml into grams
             elif 'ml' in x:
                 x = x.replace('ml','')
                 try:
                     x = float(x)
-                    x = x / 1000
+                    x = x / 1000 
                 except:
                     pass
             return x
@@ -133,21 +144,22 @@ class DataCleaning(object):
         # function to convert date from a specific format
         def check_time(x):
             from datetime import datetime
+
             try:
                 x = x.replace(' ','-')
                 x = datetime.strptime(x, '%Y-%B-%d').date()
             except:
                 try:
-                    x = x.replace(' ','')
+                    x = x.replace(' ','-')
                     x = datetime.strptime(x, '%B-%Y-%d').date()
                 except:
                     pass
             return x
         
         # checks if date is correct and converts it if required
-        stores_df['date_added'] = pd.to_datetime(stores_df['date_added'], errors = 'ignore')
-        stores_df['date_added'] = stores_df['date_added'].apply(check_time)
-        stores_df['date_added'] = pd.to_datetime(stores_df['date_added'], errors = 'coerce')
+        stores_df['date_added'] = pd.to_datetime(stores_df['date_added'], errors = 'ignore') # errors = 'ignore' as some dates needs correction
+        stores_df['date_added'] = stores_df['date_added'].apply(check_time) # uses check_time function to iterate through all the columns
+        stores_df['date_added'] = pd.to_datetime(stores_df['date_added'], errors = 'coerce') # errots = 'coerce' to return all corrupted data as NaT
 
         # drops all the columns with null data
         stores_df = stores_df.dropna()
@@ -172,7 +184,7 @@ class DataCleaning(object):
         return orders_table
     
     @classmethod
-    def date_time_details(cls):
+    def clean_date_time_details(cls):
         '''
         This method uploads the dataframe from extract_json_from_s3 method 
         in DataExtractor class. Removes all corrupted data and returns clean
@@ -185,6 +197,7 @@ class DataCleaning(object):
 
         date_time_df = DataExtractor.extract_json_from_s3()
 
+        # function to replace all non time related data with NaN
         def check_time(x):
             try:
                 x = datetime.strptime(x, '%H:%M:%S').time()
@@ -195,8 +208,6 @@ class DataCleaning(object):
         date_time_df['timestamp'] = date_time_df['timestamp'].apply(check_time)
         date_time_df['timestamp'] = pd.to_datetime(date_time_df['timestamp'], format = '%H:%M:%S', errors ='coerce').dt.time
         date_time_df = date_time_df.dropna()  
-        
+
         return date_time_df
-
-
 
