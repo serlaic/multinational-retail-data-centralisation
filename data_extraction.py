@@ -42,15 +42,22 @@ class DataExtractor(object):
         '''
         import requests
         import pandas as pd
+        
         api_key = {'x-api-key': 'yFBQbwXe9J3sd6zWVAMrK6lcxxr0q1lr2PT6DDMX'}
         store_data_df = pd.DataFrame()
+        number_of_stores = DataExtractor.list_number_of_stores()
 
+        try:
+            store_data_df = pd.read_csv('store_details.csv')
+        except:
+            print('File doesn\'t exist. Retrieving data from the web...')
         # for loop to iterate through all the pages and add them into the store_data_df dataframe
-        for store_number in range(0, DataExtractor.list_number_of_stores()):
-            store_data_json = requests.get(f"https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/store_details/{store_number}", headers= api_key).json()
-            store_data_df_single = pd.DataFrame.from_dict([store_data_json])
-            store_data_df = pd.concat([store_data_df, store_data_df_single],ignore_index = True)
-        
+            for store_number in range(0, number_of_stores):
+                store_data_json = requests.get(f"https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/store_details/{store_number}", headers= api_key).json()
+                store_data_df_single = pd.DataFrame.from_dict([store_data_json])
+                store_data_df = pd.concat([store_data_df, store_data_df_single],ignore_index = True)
+            store_data_df.to_csv('store_details.csv')
+
         return store_data_df
     
     @classmethod
@@ -79,6 +86,7 @@ class DataExtractor(object):
             try:
                 s3 = boto3.client(client)
                 s3.download_file(folder, file, file)
+                print('File downloaded. Run a code again.')
             except:
                 print('Check link. Should look like s3://.../(filename)')
 
@@ -100,7 +108,6 @@ class DataExtractor(object):
 
         return datetime_df
     
-
 
       
 
