@@ -1,3 +1,8 @@
+import pandas as pd
+import requests
+import tabula
+import boto3
+
 class DataExtractor(object):
     
     @classmethod
@@ -6,7 +11,6 @@ class DataExtractor(object):
         This function will take a table name as an argument and 
         return a pandas DataFrame.
         '''
-        import pandas as pd
         dataframe = pd.read_sql_table(table_name, db_conn.init_db_engine())
         return dataframe
     
@@ -15,7 +19,6 @@ class DataExtractor(object):
         '''
         This function will take a pdf file and return pandas dataframe
         '''
-        import tabula
         pdf_table_df = tabula.read_pdf('https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf', pages = 'all', multiple_tables = False)
         return pdf_table_df[0]
 
@@ -26,7 +29,6 @@ class DataExtractor(object):
         It takes in the number of stores endpoint and header 
         dictionary as an argument
         '''
-        import requests
         api_key = {'x-api-key': 'yFBQbwXe9J3sd6zWVAMrK6lcxxr0q1lr2PT6DDMX'}
 
         # requests information and converts to json
@@ -40,9 +42,6 @@ class DataExtractor(object):
         This method return take and retrieve store endpoint as 
         an egument and extracts all the stores from the API.
         '''
-        import requests
-        import pandas as pd
-        
         api_key = {'x-api-key': 'yFBQbwXe9J3sd6zWVAMrK6lcxxr0q1lr2PT6DDMX'}
         store_data_df = pd.DataFrame()
         number_of_stores = DataExtractor.list_number_of_stores()
@@ -66,9 +65,6 @@ class DataExtractor(object):
         This method will use boto3 package to download and extract
         the information returning pandas Dataframe.
         '''
-        import boto3
-        import pandas as pd
-
         s3_address = "s3://data-handling-public/products.csv"
         link_segments = s3_address.split('/')
         link_segments[0] = link_segments[0].replace(':','')
@@ -97,9 +93,6 @@ class DataExtractor(object):
         '''
         This method will download json file from url and convert into dataframe.
         '''
-        import requests
-        import pandas as pd
-
         # Change this with your URL
         s3_address = 'https://data-handling-public.s3.eu-west-1.amazonaws.com/date_details.json'
 
