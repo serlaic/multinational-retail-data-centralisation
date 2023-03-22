@@ -35,7 +35,7 @@ class DataCleaning(object):
         users_table = users_table[users_table['first_name_issues'].isin([True])]
         users_table['date_of_birth'] = pd.to_datetime(users_table['date_of_birth'], errors= 'coerce')
         users_table['join_date'] = pd.to_datetime(users_table['join_date'], errors= 'coerce')
-        users_table = users_table.dropna()
+        users_table = users_table.dropna().reset_index(drop = True)
         users_table_upd = users_table.drop(columns= ['first_name_issues', 'index'])
 
         return users_table_upd
@@ -50,12 +50,41 @@ class DataCleaning(object):
         '''
         from data_extraction import DataExtractor
         import pandas as pd
+        from datetime import datetime
+        import numpy as np
 
-        users_table_pdf = DataExtractor.retrieve_pdf_data()
-        users_table_pdf['date_payment_confirmed'] = pd.to_datetime(users_table_pdf['date_payment_confirmed'], errors = 'coerce')
-        users_table_pdf = users_table_pdf.dropna()
+        def check_time(x):
+            if x == 'date_payment_confirmed':
+                x = np.NaN
+            try:
+                x = datetime.strptime(x, '%Y-%m-%d').date()
+            except:
+                try:
+                    x = x.replace(' ','-')
+                    x = datetime.strptime(x, '%Y-%B-%d').date()
+                except:
+                    try:
+                        x = x.replace(' ','-')
+                        x = datetime.strptime(x, '%B-%Y-%d').date()
+                    except:
+                        try:
+                            x = x.replace('/','-')
+                            x = datetime.strptime(x, '%Y-%m-%d').date()
+                        except:
+                            pass
+                    return x
+            return x
+         
+        clean_card_df = DataExtractor.retrieve_pdf_data()
+        clean_card_df['date_payment_confirmed'] = pd.to_datetime(clean_card_df['date_payment_confirmed'], errors = 'ignore')
+        clean_card_df['date_payment_confirmed'] = clean_card_df['date_payment_confirmed'].apply(check_time)
+        clean_card_df['date_payment_confirmed'] = pd.to_datetime(clean_card_df['date_payment_confirmed'], errors = 'coerce')
+        clean_card_df['card_number'] = clean_card_df['card_number'].astype(str)
+        clean_card_df['card_number'] = clean_card_df['card_number'].apply(lambda x: x.replace('.', '') if '.' in x
+                                                                            else x)
+        clean_card_df = clean_card_df.dropna().reset_index(drop = True)
         
-        return users_table_pdf
+        return clean_card_df
     
     @classmethod
     def called_clean_stored_data(cls):
@@ -67,18 +96,26 @@ class DataCleaning(object):
         '''
         from data_extraction import DataExtractor
         import pandas as pd
+        import numpy as np
 
+        # removes all string characters from the row and leaves numbers only
         def clean_numbers_from_string(x):
             x = ''.join(i for i in x if i.isdigit())
             return x
-
-
+            
         stores_table_api = DataExtractor.retrieve_stores_data()
+        stores_table_api = stores_table_api.astype(str)
+        stores_table_api['continent'] = stores_table_api['continent'].apply(lambda x: x.replace('ee', '') if 'ee' in x
+                                                                            else x)
         stores_table_api['opening_date'] = pd.to_datetime(stores_table_api['opening_date'], errors = 'coerce')
-        stores_table_api['latitude'] = stores_table_api['latitude'].fillna("N/A")
         stores_table_api['staff_numbers'] = stores_table_api['staff_numbers'].apply(clean_numbers_from_string)
+        stores_table_api = stores_table_api.dropna().reset_index(drop = True)
+        stores_table_api['country_code'] = np.where(stores_table_api['address'] == 'nan', None, stores_table_api['country_code']) # looks for nan values in address and replaces with none in country_code
+        stores_table_api['continent'] = np.where(stores_table_api['address'] == 'nan', None, stores_table_api['continent'])
         stores_table_api = stores_table_api.drop("lat", axis= 1) # same as .drop(columns= "lat")
-        stores_table_api = stores_table_api.dropna()
+        stores_table_api = stores_table_api.drop(columns = ['index', 'Unnamed: 0'])
+        stores_table_api = stores_table_api.drop_duplicates(['address'])
+        stores_table_api = stores_table_api.replace('nan', None)
         
         return stores_table_api
 
@@ -121,10 +158,18 @@ class DataCleaning(object):
                     x = x / 1000 
                 except:
                     pass
+            # converts oz into grams
+            elif 'oz' in x:
+                x = x.replace('oz','')
+                try:
+                    x = float(x)
+                    x = (x * 28.3495) / 1000
+                except:
+                    pass
             return x
     
         # drops all the columns with null data
-        stores_df = stores_df.dropna()
+        stores_df = stores_df.dropna().reset_index(drop = True)
 
         # checks the weight and converts it into kg
         stores_df['weight'] = stores_df['weight'].apply(check_weight)
@@ -159,10 +204,12 @@ class DataCleaning(object):
         # checks if date is correct and converts it if required
         stores_df['date_added'] = pd.to_datetime(stores_df['date_added'], errors = 'ignore') # errors = 'ignore' as some dates needs correction
         stores_df['date_added'] = stores_df['date_added'].apply(check_time) # uses check_time function to iterate through all the columns
-        stores_df['date_added'] = pd.to_datetime(stores_df['date_added'], errors = 'coerce') # errots = 'coerce' to return all corrupted data as NaT
+        stores_df['date_added'] = pd.to_datetime(stores_df['date_added'], errors = 'coerce') # errors = 'coerce' to return all corrupted data as NaT
+        stores_df['product_price'] = stores_df['product_price'].apply(lambda x: x.replace('£','') if '£' in x else x)
+        stores_df = stores_df.drop(columns = 'Unnamed: 0')
 
         # drops all the columns with null data
-        stores_df = stores_df.dropna()
+        stores_df = stores_df.dropna().reset_index(drop = True)
 
         return stores_df
 
@@ -179,7 +226,11 @@ class DataCleaning(object):
         from data_extraction import DataExtractor
 
         orders_table = DataExtractor().read_rds_table('orders_table', DatabaseConnector('db_creds.yaml'))
+        orders_table = orders_table.astype(str)
         orders_table = orders_table.drop(columns = ['first_name', '1', 'last_name', 'level_0'])
+        orders_table['card_number'] = orders_table['card_number'].apply(lambda x: x.replace('.', '') if '.' in x
+                                                                            else x)
+        orders_table = orders_table.dropna().reset_index(drop = True)
 
         return orders_table
     
@@ -207,7 +258,6 @@ class DataCleaning(object):
         
         date_time_df['timestamp'] = date_time_df['timestamp'].apply(check_time)
         date_time_df['timestamp'] = pd.to_datetime(date_time_df['timestamp'], format = '%H:%M:%S', errors ='coerce').dt.time
-        date_time_df = date_time_df.dropna()  
+        date_time_df = date_time_df.dropna().reset_index(drop = True)
 
         return date_time_df
-
